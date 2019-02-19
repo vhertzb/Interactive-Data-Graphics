@@ -1,0 +1,100 @@
+---
+title: "Interactive Data Graphics"
+author: "Vicki Hertzberg"
+date: "2/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Interactive Data Graphics
+
+With Web 2.0, web browsers became more complex in the mid-00's along with an increased demand for interactive data visualizations in a browser. To date, all we have discussed are static images, but there are tools that make it easy (or easier) to make interactive data graphics.
+
+One of these is JavaScript. With JavaScript, the computations are taking place on the _client side_, not on the host's web server. 
+
+The current state of the art for client-side dynamic data graphics on the web is D3, a JavaScript Library. D3 stands for "data-driven documents."
+
+How to do with with R then? The developers of R Studio have come to the rescue with the \textcolor{red}{htmlwidgets} package, which allows R developers to create packages that render graphics in HTML using D3. In other words, R developers can make use of D3 without having to learn D3. Moreover, since this is happening on the R Studio side, R users can embed these graphics in annotated web documents.
+
+One such \textcolor{red}{htmlwidgets} tool is Plot.ly, which is really a project to develop the ability to generate data graphics between R, Python, and other tools. It is based on the `plotly.js` JavaScript library. In R we get the functionality of Plot.ly by using the `plotly` package.
+
+An especially attractive feature of `plotly` is that it can convert any `ggplot2` object into a `plotly` object using the `ggplotly()` function. It supports the following capabilities:
+
+- _brushing_: marking selected points
+- _mouse-over_: points display additional information when the mouse hovers over them
+- _panning_: moving across the viewing pane in a parallel direction
+- _zooming_: moving into an image.
+
+First, let's call up all of the packages we will need for this session:
+
+```{r}
+
+library(ggplot2); packageVersion("ggplot2")
+library(plotly); packageVersion("plotly")
+library(babynames); packageVersion("babynames")
+library(DT); packageVersion("DT")
+library(ggvis); packageVersion("ggvis")
+
+
+
+
+
+```
+
+
+Let's do an example. The package `babynames` contains a dataset listing the names of all babies born in the US since 1880. We will use this dataset to determine the frequency with which babies were given the names of one of the members of the Beatles over time.
+
+```{r}
+# Create dataframe by grabbing the data then filtering
+#Need the babynames packge to grab the names
+#Need the ggplot2 package to build the plot
+Beatles <- babynames %>%
+  filter(name %in% c("John", "Paul", "George", "Ringo") & sex == "M")
+
+# Build the plot
+
+beatles_plot <- ggplot(data = Beatles, aes(x=year, y = n)) + 
+  geom_line(aes(color=name), size=2)
+beatles_plot
+
+# Make it interactive
+#Need the plotly packge to make it interactive
+ggplotly(beatles_plot)
+
+```
+So use the tools for mousing, brushing, etc.
+
+Another of the htmlwidgets is the DT (i.e., DataTables) package that makes data tables interactive. Let's look at an example with our Beatles names data.
+
+```{r}
+# Build a dynamic table
+# Need the DT package to build a dynamic table
+library(DT)
+datatable(Beatles, options = list(pageLength = 25))
+```
+
+Pretty cool, huh!
+
+Another tool for dynamic visualization is the `\textcolor{red}{ggvis}` package. This package is _not_ built using the D3 or \textcolor{red}{htmlwidgets} frameworks. Let's use it to create a visualization of the proportion of male babies named John as a function of the number of names over time, such that the user can mouse over a values to see the year, number, and proportion.
+
+```{r}
+
+# Find out how many males named John
+#Need the ggvis package for the last command in this chunk
+John <- filter(Beatles, name=="John")
+
+# Find out how many males
+all_values <- function(x){
+  if (is.null(x)) return(NULL)
+  row <- John[John$year == x$year, ]
+  paste0(names(row), ": ", format(row), collapse = "<br />")
+}
+
+John %>%
+  ggvis(~n, ~prop, fill = ~year) %>%
+  layer_points() %>%
+  add_tooltip(all_values, "hover")
+```
